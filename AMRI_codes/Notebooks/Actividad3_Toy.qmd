@@ -1,0 +1,17 @@
+---
+title: "Activad3_Toy"
+format:
+   html:
+     mathjax: true
+     toc: true
+     html-math-method: katex
+     embed-resources: true
+     self-contained-math: true
+     df-print: kable
+editor: source
+---
+
+```{r}
+data = read.csv("../data/toy_bayes.csv'", stringsAsFactors = TRUE)
+head(data)
+```
