@@ -155,7 +155,6 @@ score(dag, data = data, type = "aic")
 
 ## Best dag
 
-
 ```{r}
 best_dag = hc(data)
 ```
@@ -171,8 +170,8 @@ score(best_dag, data = data, type = "bic")
 score(best_dag, data = data, type = "aic")
 ```
 
--  Estos valores son más grandes que los que obtuvimos antes.
-- Esta estructura resulta ser mejor.
+-   Estos valores son más grandes que los que obtuvimos antes.
+-   Esta estructura resulta ser mejor.
 
 ### Graficar
 

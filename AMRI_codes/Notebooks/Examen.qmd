@@ -1,0 +1,160 @@
+---
+title: "Actividad1_Transporte"
+author: "Camila"
+format:
+   html:
+     mathjax: true
+     toc: true
+     html-math-method: katex
+     embed-resources: true
+     self-contained-math: true
+     df-print: kable
+editor: source
+---
+
+## Running Code
+
+```{r}
+#| eval: false
+install.packages("bnlearn")
+```
+
+## Librerías
+
+```{r}
+library(bnlearn)
+```
+
+## Abrir los datos
+
+```{r}
+data = read.csv("../data/murder.csv", stringsAsFactors = TRUE)
+head(data)
+```
+
+#1. Hacer una dag
+
+Crear DAG vacía
+
+```{r}
+dag = empty.graph(nodes = c("A", "L", "M", "R", "S", "T","W"))
+```
+
+-   Definir las relaciones con una matriz.
+
+```{r}
+arc_set = matrix(c("S", "R", 
+                   "A", "R",
+                   "R", "M",
+                   "L", "M",
+                   "M", "W",
+                   "L", "T",
+                   "T","W"), byrow = TRUE, ncol = 2,
+                 dimnames = list(NULL, c("from", "to")))
+
+```
+
+## **Creando la DAG**
+
+-   La primera columna define el nodo padre y la segunda el hijo.
+
+
+```{r}
+arc_set
+```
+
+-   Creamos los arcos de la DAG con la función `arc()`.
+
+```{r}
+arcs(dag) = arc_set
+```
+
+objeto resultante
+
+```{r}
+dag
+```
+```{r}
+graphviz.plot(dag, shape = "ellipse")
+```
+
+# 2. **Estimando los parámetros**
+
+-   Utilizamos el método de máxima verosimilitud (MLE) para estimar los parámetros de nuestra DAG.
+
+```{r}
+bn_mle = bn.fit(dag, data = data, method = "mle")
+```
+
+-   Para acceder a las probabilidades condicionales usamos el operador `$` y el nombre del nodo.
+
+-   Obtenemos las probabilidades condicionales del nodo de educación.
+
+```{r}
+bn_mle$R
+```
+La probabilidad de que la persona victimaria sea la pareja de una víctima femenina adulta (de 18 a 50 años) es de 0.4112 ó 41.12%
+
+$$\mathbb{P}(\text{R = "Partner"} \mid \text{( S = "Female" } \cap \text{ A = "18-50" )})$$
+La probabilidad dado que la víctima sea masculina
+$$\mathbb{P}(\text{R = "Partner"} \mid \text{( S = "Male" } \cap \text{ A = "18-50" )})$$
+es de 0.0958 ó 9.58%
+
+
+# 3. **Pruebas de independencia condicional**
+
+-   Prueba $G^2$: Equivalente a la prueba de información mutua (`mi`).
+
+```{r}
+ci.test("W", "T", "M", test = "mi", data = data)
+```
+Lo que nos devuelve el $\texttt{ci.test}$ es que $\texttt{p-value} < 2.2e-16$, esto quiere decir que el p - valor obtenido con el estadístico de prueba $\texttt{`mi`}$ es sumamente pequeño, no entra en la zona de aceptación (considerando $ \alpha = 0.05$ ) por lo que rechazamos $H_0$, en otras palabras Transporte *no* es condicionalmente independiente de la ocupación dada la residencia. En términos de los datos y la DAG quiere decir que no se puede borrar ese arco e el grafo. Además no se puede comprobar o sacar la probabilidad de alguna hipótesis que involucre al tipo de arma, solamente con el Motivo dado, se necesita también una Hora en la que ocurrió el crimen. 
+
+------------------------------------------------------------------------
+
+# 4. **Estadísticos **
+
+```{r}
+dag2 = empty.graph(nodes = c("A", "L", "M", "R", "S", "T","W"))
+arc_set2 = matrix(c("S", "R", 
+                   "A", "R",
+                   "R", "M",
+                   "M", "W",
+                   "L", "T",
+                   "T","W"), byrow = TRUE, ncol = 2,
+                 dimnames = list(NULL, c("from", "to")))
+arcs(dag2) = arc_set2
+graphviz.plot(dag2, shape = "ellipse")
+```
+
+### Bic
+
+Score Dag original
+```{r}
+score(dag, data = data, type = "bic")
+```
+
+Score Dag propuesta
+```{r}
+score(dag2, data = data, type = "bic")
+```
+
+
+La Dag Original tiene una métrica más grande BIC, considerando que en $\texttt{bnlearn}$ entre más grande sea la BIC mejor, esto quiere decir que la DAG propuesta se ajusta peor a los datos; nos quedamos con la original.
+
+# 5. Queries
+
+## Logic Sampling
+
+
+```{r}
+bn = bn.fit(dag, data = data)
+```
+
+```{r}
+cpquery(bn, event= (S == "Female" & A == "18-50"), evidence= ((L == "South") & (R == "Partner")), n= 10^6)
+```
+
+- La probabilidad de que la víctima de un crimen de odio sea una mujer adulta (de 18 a 50 años) dado que el crimen fue cometido en la zona sur de la ciudad y la persona victimaria fuera su pareja
+$$\mathbb{P}(\text{ [S = "Female" } \cap \text{ A = "18-50" ]} \mid [ \text{R = "Partner"}  \cap \text{L = "South"} ] )$$
+es de 0.8183 ó 81:83%
