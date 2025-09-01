@@ -3,6 +3,7 @@ title: "Actividad1_Transporte"
 author: "Camila"
 format:
    html:
+     mathjax: true
      toc: true
      html-math-method: katex
      embed-resources: true
@@ -11,10 +12,6 @@ format:
 editor: source
 ---
 
-## Quarto
-
-Quarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see <https://quarto.org>.
-
 ## Running Code
 
 ```{r}
@@ -22,16 +19,20 @@ Quarto enables you to weave together content and executable code into a finished
 install.packages("bnlearn")
 ```
 
+## Librerías
+
 ```{r}
 library(bnlearn)
 ```
 
-You can add options to executable code like this
+## Abrir los datos
 
 ```{r}
 data = read.csv("../data/survey.csv", stringsAsFactors = TRUE)
 head(data)
 ```
+
+# Hacer una dag
 
 Crear DAG vacía
 
@@ -88,10 +89,140 @@ bn_mle = bn.fit(dag, data = data, method = "mle")
 bn_mle$E
 ```
 
+## **Probabilidades condicionales**
+
 ```{r}
 bn_mle$A
 ```
 
+2.  ¿Cuál es la probabilidad de que una persona con educación universitaria trabaje?
+
 ```{r}
 bn_mle$O
 ```
+
+-   Por lo tanto, la probabilidad estimada es de alrededor 0.9259.
+
+## **Pruebas de independencia condicional**
+
+-   Prueba $G^2$: Equivalente a la prueba de información mutua (`mi`).
+
+```{r}
+ci.test("T", "E", c("O", "R"), test = "mi", data = data)
+```
+
+-   P-values grandes $\Longrightarrow$ **No** rechazar la hipótesis nula.
+
+-   No hay evidencia que sugiera que $T$ depende de $E$ dados $O$ y $R$.
+
+-   La relación de dependencia E→TE→T no es significativa dada la estructura de la DAG actual.
+
+-   **No hay arco de** $E$ a $T$
+
+------------------------------------------------------------------------
+
+¿El transporte será independiente de la ocupación dada la residencia?
+
+$$H_0 : T \perp\!\!\!\perp O \mid R \qquad H_a : T \not\!\perp\!\!\!\perp O \mid R$$
+
+```{r}
+ ci.test("T", "O", "R", test = "mi", data = data)
+```
+
+-   **No** rechazamos $H_0$: Transporte es condicionalmente independiente de la ocupación dada la residencia.
+
+-   La relación de dependencia $O \rightarrow T$ **no** es significativa.
+
+-   **No debería haber arco de** $O$ a $T$
+
+## **Estructura de la DAG**
+
+```{r}
+arc.strength(dag, data = data, criterion = "mi")
+```
+
+### Bic
+
+```{r}
+score(dag, data = data, type = "bic")
+```
+
+### Akaike
+
+```{r}
+score(dag, data = data, type = "aic")
+```
+
+## Best dag
+
+```{r}
+best_dag = hc(data)
+```
+
+```{r}
+modelstring(best_dag)
+```
+
+### Score
+
+```{r}
+score(best_dag, data = data, type = "bic")
+score(best_dag, data = data, type = "aic")
+```
+
+### Graficar
+
+```{r}
+install.packages("BiocManager")
+BiocManager::install("Rgraphviz")
+```
+
+```{r}
+graphviz.plot(best_dag, shape = "ellipse")
+```
+
+# Queries
+
+## Logic Sampling
+
+-   Ajustamos una red bayesina usando la DAG óptima que resultó del algoritmo hill-climbing.
+
+```{r}
+best_dag = hc(data)
+```
+
+```{r}
+bn = bn.fit(best_dag, data = data)
+```
+
+```{r}
+cpquery(bn, event= (T == "train" & S == "F"), evidence= (E == "uni"), n= 10^6)
+```
+
+## Likelihood Weighting
+
+```{r}
+cpquery(bn, event= (T == "train" & S == "F"), evidence= list(E = "uni"), method = "lw")
+```
+
+## Otros Queries
+
+La Secretaría de Transporte de Jalisco está interesada en conocer si hombres jalisciences se transportan más en tren cuando son jóvenes universitarios o adultos (sin importar su educación) que las mujeres jalisciences con las mismas características
+
+$p_M = \mathbb{P}(T= train | \{(A= young \cap E = uni)\cup A = adult) \} \cap S= male)$
+
+$p_F = \mathbb{P}(T= train | \{(A= young \cap E = uni)\cup A = adult) \} \cap S= female)$
+
+$$
+p_M > p_F
+$$
+
+```{r}
+cpquery(bn, event= (T == "train"), evidence= ((S == "M") & (((A == "young") & (E == "uni")) | (A == "adult"))), n = 10^6)
+```
+
+```{r}
+cpquery(bn, event= (T == "train"), evidence= ((S == "F") & (((A == "young") & (E == "uni")) | (A == "adult"))), n = 10^6)
+```
+
+-   La probabilidad parece ser ligeramente mayor en los hombres, salvo el error de simulación.
