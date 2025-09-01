@@ -1,6 +1,6 @@
 ---
-title: "Actividad1_Transporte"
-author: "Camila"
+title: "Examen"
+author: "Sarah Camila Guzmán Fierro - A01639368"
 format:
    html:
      mathjax: true
@@ -157,4 +157,4 @@ cpquery(bn, event= (S == "Female" & A == "18-50"), evidence= ((L == "South") & (
 
 - La probabilidad de que la víctima de un crimen de odio sea una mujer adulta (de 18 a 50 años) dado que el crimen fue cometido en la zona sur de la ciudad y la persona victimaria fuera su pareja
 $$\mathbb{P}(\text{ [S = "Female" } \cap \text{ A = "18-50" ]} \mid [ \text{R = "Partner"}  \cap \text{L = "South"} ] )$$
-es de 0.8183 ó 81:83%
+es de 0.8183 ó 81.83%
