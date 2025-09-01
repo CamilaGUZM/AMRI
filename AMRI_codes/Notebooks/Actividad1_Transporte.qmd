@@ -173,6 +173,7 @@ score(best_dag, data = data, type = "aic")
 ### Graficar
 
 ```{r}
+#| eval: false
 install.packages("BiocManager")
 BiocManager::install("Rgraphviz")
 ```
