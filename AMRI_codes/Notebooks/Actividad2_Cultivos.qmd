@@ -1,0 +1,215 @@
+---
+title: "Actividad2_Cultivos"
+format:
+   html:
+     toc: true
+     html-math-method: katex
+     embed-resources: true
+     self-contained-math: true
+     df-print: kable
+editor: visual
+---
+
+# Situación
+
+-   Sabemos que hay ciertos factores ambientales que afectan las cosechas y dependen de otras causas como la ubicación geográfica.
+
+-   Podemos deducir que la temperatura y la precipitación son nodos raíz que no dependen de las otras variables.
+
+-   La humedad y el pH en el suelo se ven influenciados, principalmente, por los factores ambientales.
+
+## **Ejemplo: Análisis de cultivos**
+
+-   Estudios científicos sugieren que los niveles de nitrógeno y potasio se ven influenciados por la humedad. Mientras que el fósforo parece estar mayormente relacionado con el pH del suelo.
+
+-   Sabemos que el nitrógeno, potasio y fósforo son los nutrientes principales de las plantas. Por lo que la producción de un cultivo dependerá de la cantidad de nutrientes en el suelo con los que cuente la planta.
+
+![](images/clipboard-1019417006.png)
+
+```{r}
+library(tidyverse)
+library(bnlearn)
+```
+
+```{r}
+data = read_csv("../data/crop.csv")
+head(data)
+```
+
+```{r}
+#quitar crop del dataframe
+data = data |>
+        select(-crop)
+head(data)
+```
+
+```{r}
+#Renombrar columnas del dataset
+colnames(data) = c("N", "P", "K", "T", "H", "pH", "R", "Y") #tiene que ser en el mismo orden que las columnas
+```
+
+```{r}
+#Crear la dag directamente de la factorizacion de la distribución global
+dag = model2network("[T][R][H|T:R][pH|T:R][N|H][K|H][P|pH][Y|N:K:P]")
+```
+
+```{r}
+graphviz.plot(dag, shape = "ellipse")
+```
+
+```{r}
+crop_fit = bn.fit(dag, data=data) #Ajustamos una linear GBN
+```
+
+```{r}
+crop_fit$N
+```
+
+```{r}
+mod_lm = lm(N ~ H, data = data) #lm estima un modelo de regresion lineal
+#La formula es una especificacion del modelo como string 
+#Formato Dependiente ~ Independiente
+coef(mod_lm)
+
+```
+
+## **Linealidad vs no linealidad**
+
+-   Veamos si un modelo lineal tiene sentido.
+
+```{r}
+ggplot(data, aes(x = H, y = N)) +
+  geom_point(color = "steelblue", alpha = 0.3) +
+  geom_smooth(method = lm, se = FALSE, lwd = 2, color = "dodgerblue") +
+  labs(x = "Humedad", y = "Nivel de nitrógeno", title = "") +
+  theme_bw() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold", margin = margin(0, 0, 5, 0)),
+        axis.title.x = element_text(face = "bold"),
+        axis.title.y = element_text(face = "bold", angle = 90))
+```
+
+-   Parece que un modelo lineal no hace mucho sentido.
+
+## **Modelo no paramétrico**
+
+-   Ajustemos un **modelo no paramétrico**
+
+```{r}
+#| 
+#| install.packages("mgcv")
+#| install.packages("gratia")
+```
+
+```{r}
+library(mgcv)
+library(gratia)
+```
+
+-   Ajustamos un modelo no paramétrico para el nodo del nivel de nitrógeno.
+
+```{r}
+mod_gam_N = gam(N ~ s(H), data = data, method = "REML")#s(H) Especificamos una funcion de H
+```
+
+-   Veamos ahora el ajuste.
+
+```{r}
+draw(mod_gam_N, residuals = TRUE, rug = FALSE) +
+  labs(x = "Humedad", y = "s(Humedad)", title = "Efecto parcial de la humedad sobre el nitrógeno") +
+  theme_bw() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold",
+                                  margin = margin(0, 0, 5, 0)),
+        axis.title.x = element_text(face = "bold"),
+        axis.title.y = element_text(face = "bold", angle = 90),
+        legend.title = element_text(hjust = 0.5, face = "bold"),
+        legend.text = element_text(hjust = 0.5),
+        strip.text = element_text(hjust = 0.5, face = "bold",
+                                  margin = margin(2, 3, 3, 3)),
+        plot.subtitle = element_text(hjust = 0.5, face = "bold",
+                                     size = 10,
+                                     margin = margin(0, 0, 5, 0)))
+```
+
+## **Pruebas de independencia condicional**
+
+-   Ajustamos el modelo lineal correspondiente.
+
+$$H_0:Y \perp\!\!\!\perp K \mid N, P ; H_a: Y \not\!\perp\!\!\!\perp K \mid N,P$$
+
+```{r}
+mod_Y_NKP = lm(Y ~ N + K + P, data=data)
+```
+
+Usamos la función summary() para revisar los resultados de las pruebas de hipótesis.
+
+```{r}
+summary(mod_Y_NKP)
+```
+
+-   No se rechaza $H_0$
+
+-   Es decir que K no depende de Y (al menos de forma lineal)
+
+# BIC
+
+```{r}
+score(dag, data=data, type="bic-g")
+```
+
+-   Para cada una de las distribuciones locales ajustamos un modelo no paramétrico.
+
+```{r}
+mod_gam_H = gam(H ~ s(T) + s(R), data = data, method = "REML")
+mod_gam_pH = gam(pH ~ s(T) + s(R), data = data, method = "REML")
+mod_gam_N = gam(N ~ s(H), data = data, method = "REML")
+mod_gam_K = gam(K ~ s(H), data = data, method = "REML")
+mod_gam_P = gam(P ~ s(pH), data = data, method = "REML")
+mod_gam_Y = gam(Y ~ s(N) + s(K) + s(P), data = data, method = "REML")
+```
+
+-   Las distribuciones locales de la temperatura y precipitación son modelos gaussianos univariados.
+
+```{r}
+mod_T = lm(T ~ 1, data = data)
+mod_R = lm(R ~ 1, data = data)
+
+```
+
+# Bic
+
+-   Para calcular el BIC podemos usar la función `BIC()` en R.
+-   Sin embargo, necesitamos hacer comparable esta medida con la que calcula `bnlearn`, la cual está dada por
+
+$$\text{BIC}_{\texttt{bnlearn}} = \ell(\boldsymbol{\hat{\theta}}; \boldsymbol{x})- \frac{k}{2} \log (n)$$
+
+```{r}
+-1/2*(BIC(mod_T) + BIC(mod_R) + BIC(mod_gam_H) + BIC(mod_gam_K) +
+           BIC(mod_gam_N) + BIC(mod_gam_P) + BIC(mod_gam_pH) + BIC(mod_gam_Y))
+
+```
+
+-   Al ser mayor, podemos decir que esta red es mejor que la que considera LM’s.
+
+# Querying
+
+1.  ¿Cuál es la probabilidad de obtener una producción mayor a 70ton bajo condiciones de temperatura y precipitación de 30°C y 100mm, respectivamente.
+
+$$
+\mathbb{P}(Y>70 \mid T=30 , R = 100)
+$$
+
+-   Cuando condicionamos sobre valores puntuales solo podemos usar el método de likelihood weighting.
+
+```{r}
+cpquery(crop_fit, event = (Y>70), evidence = list(T=30,R=100), method = "lw")
+```
+
+2.   ¿Cuál es la probabilidad de obtener una producción de al menos 10,000ton cuando el nitrógeno es de menos de 72kg/ha o el potasio y el fósforo son de a lo más 20kg/ha y 30kg/ha, respectivamente.
+
+$$
+\mathbb{P}(Y \geq 1000 \mid N<72 \cup \{K \leq 20, P \leq 30\})
+$$
+
+```{r}
+cpquery(crop_fit, event = (Y>=10000), evidence = (N<72)|((K<=20)&(P<=30)), n=10^6)
+```
