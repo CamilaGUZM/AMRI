@@ -1,0 +1,138 @@
+---
+title: "Ensanut"
+format: html
+editor: visual
+---
+
+# Objetivo:
+
+Entrenar al Naive Bayes
+
+abrir librería
+
+```{r}
+library(tidyverse)
+```
+
+```{r}
+diabetes = read_delim("../data/ensanut2020_diabetes.csv", delim = ";")
+head(diabetes)
+```
+
+```{r}
+install.packages("janitor")
+```
+
+```{r}
+library(janitor)
+```
+
+```{r}
+diabetes = diabetes |>
+            clean_names() #el paréntesis es para indicar que es para todos los datos
+```
+
+```{r}
+glimpse(diabetes)
+```
+
+```{r}
+data = diabetes |>
+        mutate(dx = case_when(h0902a  == 1 ~ "diabetes",
+                                   h0902a == 9 ~ "no_diabetes")) #es un if, si pasallamale "diabetes" si no, ps no
+```
+
+```{r}
+data = data |>
+        select(sexo, edad , dx, contains("valor"))
+
+head(data)
+```
+
+```{r}
+data = data |>
+        filter(!is.na(dx)) #dropna; verifica si dx son na o no
+```
+
+```{r}
+glimpse(data) 
+```
+
+hay datos con , se necesita cambiar la , por un punto .
+
+```{r}
+data = data |> mutate(across(contains("valor"), ~ as.numeric(str_replace(., "," , "\\.")))) # across aplica lo que está del primer argumento a todo lo del lado izquierdo
+# hace numerico(. --> tomar toda la lista de variables, "\\." --> representa el caracter tal cual .)
+
+```
+
+```{r}
+glimpse(data)
+```
+
+```{r}
+install.packages("tidymodels")
+```
+
+```{r}
+library(tidymodels)
+```
+
+-   vamos a dividir datos
+
+    -   training
+
+    -   test
+
+```{r}
+set.seed(1234)
+diabetes_split = initial_split(data, prop = 0.7)
+```
+
+```{r}
+diabetes_train = training(diabetes_split)
+diabetes_test = testing(diabetes_split)
+```
+
+```{r}
+install.packages("e1071")
+```
+
+```{r}
+library(e1071)
+```
+
+Formula \$y \\sim x\$
+
+va a ser \$dx \\sim .\$
+
+```{r}
+NB_cl = naiveBayes(dx ~ . , data = diabetes_train)
+
+
+```
+
+```{r}
+y_pred = predict(NB_cl, newdata = diabetes_test)
+```
+
+Matriz confusion
+
+```{r}
+cm = table(diabetes_test$dx, y_pred)
+```
+
+diag = true positives true neg
+
+$$
+accuracy = \frac{TP +TN}{TOTAL}
+$$
+
+```{r}
+sum(diag(cm))/ sum(cm)
+
+```
+
+# HASTA AQUÍ EXAMEN
+
+------------------------------------------------------------------------

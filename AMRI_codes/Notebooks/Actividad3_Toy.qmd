@@ -11,9 +11,7 @@ format:
 editor: source
 ---
 
-```{r} #| eval: false}
-install.packages("tidyverse")
-```
+`{r} #| eval: false} install.packages("tidyverse")`
 
 ```{r}
 library(tidyverse)
@@ -48,7 +46,7 @@ data |>
 
 (y= 0 ) es la categoría lol
 
-## Estimar densidad de f(x_1 \\mid y) y f(x_2 \\mid y) 
+## Estimar densidad de f(x_1 \\mid y) y f(x_2 \\mid y)
 
 -   lo haremos de forma no paramétrica
 
