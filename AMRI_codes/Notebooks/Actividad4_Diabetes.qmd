@@ -12,11 +12,15 @@ La diabetes mellitus es una afección en la que los niveles de glucosa en sangre
 
 Entrenar al Naive Bayes
 
-abrir librería
+# Abrir librería
 
 ```{r}
 library(tidyverse)
 ```
+
+-   Como los datos no son un archivo `.csv` común, los cargamos usando la función `read_delim()` y especificando el tipo de delimitador.
+
+# Abrir DataSet
 
 ```{r}
 diabetes = read_delim("../data/ensanut2020_diabetes.csv", delim = ";")
@@ -31,6 +35,12 @@ install.packages("janitor")
 library(janitor)
 ```
 
+# Hacer Clasificador
+
+## Limpiar Datos
+
+-   *Limpiamos* los nombres de las columnas con la función `clean_names()`.
+
 ```{r}
 diabetes = diabetes |>
             clean_names() #el paréntesis es para indicar que es para todos los datos
@@ -40,11 +50,23 @@ diabetes = diabetes |>
 glimpse(diabetes)
 ```
 
+-   La variable `h0902a` es la que nos da información sobre el estatus de la persona.
+
+-   Valores iguales a 1 identifican personas con diabetes, mientras que valores iguales a 9 a personas sanas.
+
+## Creación de Variable objetivo
+
+-   Vamos a crear una variable con el diagnóstico, esta será nuestra variable objetivo.
+
 ```{r}
 data = diabetes |>
         mutate(dx = case_when(h0902a  == 1 ~ "diabetes",
                                    h0902a == 9 ~ "no_diabetes")) #es un if, si pasallamale "diabetes" si no, ps no
 ```
+
+## Filtrar Variables Características
+
+-   Seleccionamos el diagnóstico, sexo, edad y los valores de la química sanguínea.
 
 ```{r}
 data = data |>
@@ -53,10 +75,16 @@ data = data |>
 head(data)
 ```
 
+### Limpieza
+
+-   Nos quedamos sólo con los datos completos para la variable `dx`.
+
 ```{r}
 data = data |>
         filter(!is.na(dx)) #dropna; verifica si dx son na o no
 ```
+
+-   Notamos que existen algunos problemas con los tipos de dato en nuestras variables.
 
 ```{r}
 glimpse(data) 
@@ -64,8 +92,12 @@ glimpse(data)
 
 hay datos con , se necesita cambiar la , por un punto .
 
+-   Debido a que los datos de la química sanguínea tienen una coma, R los identifica como caracteres.
+
+-   Reemplazamos la coma por un punto decimal y convertimos los datos a numéricos con ayuda de las funciones `as.numeric()` y `str_replace()`.
+
 ```{r}
-data = data |> mutate(across(contains("valor"), ~ as.numeric(str_replace(., "," , "\\.")))) # across aplica lo que está del primer argumento a todo lo del lado izquierdo
+data = data |> mutate(across(contains("valor"), ~ as.numeric(str_replace(., "," , "\\.")))) # across aplica lo que está del primer argumento a todo lo del lado derecho
 # hace numerico(. --> tomar toda la lista de variables, "\\." --> representa el caracter tal cual .)
 
 ```
@@ -82,11 +114,15 @@ install.packages("tidymodels")
 library(tidymodels)
 ```
 
+## Dividir Sets
+
 -   vamos a dividir datos
 
     -   training
 
     -   test
+
+-   Usamos la función `initial_split()` que es similar al `train_test_split()` de Python.
 
 ```{r}
 set.seed(1234)
@@ -98,17 +134,23 @@ diabetes_train = training(diabetes_split)
 diabetes_test = testing(diabetes_split)
 ```
 
+-   Instalamos el paquete `e1071` donde está implementado el clasificador naïve Bayes.
+
 ```{r}
 install.packages("e1071")
 ```
+
+## Ajustar Clasificador a Training
 
 ```{r}
 library(e1071)
 ```
 
-Formula \$y \\sim x\$
+-   La función `naiveBayes()` implementa este clasificador usando una distribución normal para las variables numéricas.
 
-va a ser \$dx \\sim .\$
+Formula $y \sim x$
+
+va a ser $dx \sim .$
 
 ```{r}
 NB_cl = naiveBayes(dx ~ . , data = diabetes_train)
@@ -116,11 +158,15 @@ NB_cl = naiveBayes(dx ~ . , data = diabetes_train)
 
 ```
 
+## Predecir
+
 ```{r}
 y_pred = predict(NB_cl, newdata = diabetes_test)
 ```
 
-Matriz confusion
+### Matriz confusion
+
+-   Construimos la matriz de confusión.
 
 ```{r}
 cm = table(diabetes_test$dx, y_pred)

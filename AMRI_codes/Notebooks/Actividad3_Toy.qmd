@@ -15,7 +15,6 @@ editor: source
 
 Construye un clasificador naïve Bayes para clasificar la observación $\tilde{x}=(0.4,1.5,\text{Level1})$
 
-`{r} #| eval: false} install.packages("tidyverse")`
 
 ```{r}
 library(tidyverse)
