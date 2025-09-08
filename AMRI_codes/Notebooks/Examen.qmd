@@ -152,9 +152,9 @@ bn = bn.fit(dag, data = data)
 ```
 
 ```{r}
-cpquery(bn, event= (S == "Female" & A == "18-50"), evidence= ((L == "South") & (R == "Partner")), n= 10^6)
+cpquery(bn, event= (S == "Female" & A == "18-50" & M =="Hate"), evidence= ((L == "South") & (R == "Partner")), n= 10^6)
 ```
 
 - La probabilidad de que la víctima de un crimen de odio sea una mujer adulta (de 18 a 50 años) dado que el crimen fue cometido en la zona sur de la ciudad y la persona victimaria fuera su pareja
-$$\mathbb{P}(\text{ [S = "Female" } \cap \text{ A = "18-50" ]} \mid [ \text{R = "Partner"}  \cap \text{L = "South"} ] )$$
-es de 0.8183 ó 81.83%
+$$\mathbb{P}(\text{ [S = "Female" } \cap \text{ A = "18-50" ]} \cap \text{ M = "Hate" ]}\mid [ \text{R = "Partner"}  \cap \text{L = "South"} ] )$$
+es de 0.1839 ó 18.39%

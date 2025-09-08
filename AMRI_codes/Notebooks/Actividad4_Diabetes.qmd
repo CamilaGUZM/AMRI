@@ -4,6 +4,10 @@ format: html
 editor: visual
 ---
 
+# **Motivación: Detección de diabetes**
+
+La diabetes mellitus es una afección en la que los niveles de glucosa en sangre son demasiado altos y no se pueden controlar por la falta de una hormona llamada insulina. Según la causa, se clasifica en diabetes Tipo 1 y Tipo 2. En los últimos años, su prevalencia mundial ha aumentado y continúa siendo un foco de atención en México debido al aumento en la población con sobrepeso y problemas cardiovasculares.
+
 # Objetivo:
 
 Entrenar al Naive Bayes
